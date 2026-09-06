@@ -27,13 +27,50 @@ export interface ItemProgress {
   note: string;
   redo: boolean;
   blocked: boolean;
+  bookmarked?: boolean;
 }
 
 export type ProgressMap = Record<string, ItemProgress>;
 
 export type TrackType = 'foundation' | 'advanced';
 
-export type TabType = 'syllabus' | 'timeline' | 'balance' | 'sprint' | 'portfolio';
+export type TabType = 'syllabus' | 'flashcards' | 'notes' | 'sprint' | 'profile' | 'timeline' | 'balance' | 'portfolio';
+
+export interface UserProfile {
+  name: string;
+  email: string;
+  targetRole: string;
+  targetCompany: string;
+  targetDate: string;
+  targetWeeklyHours: number;
+  currentLevel: string;
+  bio: string;
+  githubUrl: string;
+  linkedinUrl: string;
+  isPinLocked: boolean;
+  pinHash: string; // 4-digit code
+  securityQuestion: string;
+  securityAnswer: string;
+}
+
+export interface StudyNote {
+  id: string;
+  title: string;
+  content: string;
+  category: 'architecture' | 'ai-rag' | 'client-meeting' | 'interview-prep' | 'general';
+  tags: string[];
+  updatedAt: string;
+}
+
+export interface Flashcard {
+  id: string;
+  category: 'core' | 'ai' | 'customer';
+  question: string;
+  answer: string;
+  keyTakeaway: string;
+  codeSnippet?: string;
+  difficulty: 'intermediate' | 'advanced';
+}
 
 export interface CaseStudy {
   id: string;

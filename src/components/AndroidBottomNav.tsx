@@ -1,7 +1,7 @@
 import React from 'react';
 import { TabType } from '../types';
 import { triggerHaptic } from '../utils/haptics';
-import { CheckSquare, Calendar, PieChart, Timer, Briefcase } from 'lucide-react';
+import { CheckSquare, Sparkles, FileText, Timer, User } from 'lucide-react';
 
 interface AndroidBottomNavProps {
   activeTab: TabType;
@@ -24,24 +24,24 @@ export const AndroidBottomNav: React.FC<AndroidBottomNavProps> = ({
       badge: `${completedCount}/${totalCount}`,
     },
     {
-      id: 'timeline',
-      label: 'Timeline',
-      icon: <Calendar className="w-5 h-5" />,
+      id: 'flashcards',
+      label: 'Recall',
+      icon: <Sparkles className="w-5 h-5" />,
     },
     {
-      id: 'balance',
-      label: 'Balance',
-      icon: <PieChart className="w-5 h-5" />,
+      id: 'notes',
+      label: 'Journal',
+      icon: <FileText className="w-5 h-5" />,
     },
     {
       id: 'sprint',
-      label: 'Sprint',
+      label: 'Focus',
       icon: <Timer className="w-5 h-5" />,
     },
     {
-      id: 'portfolio',
-      label: 'Portfolio',
-      icon: <Briefcase className="w-5 h-5" />,
+      id: 'profile',
+      label: 'Profile',
+      icon: <User className="w-5 h-5" />,
     },
   ];
 
@@ -88,3 +88,4 @@ export const AndroidBottomNav: React.FC<AndroidBottomNavProps> = ({
     </nav>
   );
 };
+

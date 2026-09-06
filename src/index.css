@@ -3,6 +3,7 @@
 :root {
   --paper: #FAF8F3;
   --paper-dim: #F2EFE6;
+  --paper-card: #FFFFFF;
   --line: #E3DED0;
   --ink: #1C1B19;
   --ink-soft: #55524A;
@@ -22,6 +23,68 @@
   --mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
   --sans: 'Inter', -apple-system, sans-serif;
 }
+
+html.dark {
+  --paper: #121316;
+  --paper-dim: #1B1D22;
+  --paper-card: #18191E;
+  --line: #2D313A;
+  --ink: #EDEAE2;
+  --ink-soft: #A8A498;
+  --ink-faint: #706C62;
+
+  --blue: #5487E8;
+  --blue-soft: #1C2638;
+  --sage: #8DA87A;
+  --sage-soft: #202A1D;
+  --amber: #E2AC54;
+  --amber-soft: #382B17;
+  --plum: #AC82B8;
+  --plum-soft: #332038;
+  --red: #D9625A;
+}
+
+/* OLED Dark Mode overrides for existing hardcoded warm paper utility classes */
+html.dark .bg-\[\#FAF8F3\] {
+  background-color: var(--paper) !important;
+}
+html.dark .bg-\[\#FAF8F3\]\/95 {
+  background-color: rgba(18, 19, 22, 0.95) !important;
+}
+html.dark .bg-\[\#F2EFE6\] {
+  background-color: var(--paper-dim) !important;
+}
+html.dark .bg-white {
+  background-color: var(--paper-card) !important;
+}
+html.dark .border-\[\#E3DED0\] {
+  border-color: var(--line) !important;
+}
+html.dark .border-\[\#1C1B19\] {
+  border-color: var(--line) !important;
+}
+html.dark .text-\[\#1C1B19\] {
+  color: var(--ink) !important;
+}
+html.dark .text-\[\#55524A\] {
+  color: var(--ink-soft) !important;
+}
+html.dark .text-\[\#948E7E\] {
+  color: var(--ink-faint) !important;
+}
+html.dark .bg-\[\#DCE5F3\] {
+  background-color: var(--blue-soft) !important;
+}
+html.dark .bg-\[\#E1E8D9\] {
+  background-color: var(--sage-soft) !important;
+}
+html.dark .bg-\[\#F1E4CB\] {
+  background-color: var(--amber-soft) !important;
+}
+html.dark .bg-\[\#EBE1EC\] {
+  background-color: var(--plum-soft) !important;
+}
+
 
 * {
   box-sizing: border-box;

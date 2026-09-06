@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "The FDE Path",
+  "short_name": "FDE Path",
+  "description": "Field manual and enhanced study syllabus for Forward Deployed Engineering, optimized for Android.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#FAF8F3",
+  "background_color": "#FAF8F3",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

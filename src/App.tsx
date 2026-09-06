@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { SYLLABUS } from './data/syllabus';
-import { TrackType, TabType, ProgressMap, BucketType } from './types';
+import { TrackType, TabType, ProgressMap, BucketType, UserProfile } from './types';
 import { AndroidTopBar } from './components/AndroidTopBar';
 import { AndroidBottomNav } from './components/AndroidBottomNav';
 import { SyllabusView } from './components/SyllabusView';
+import { FlashcardsView } from './components/FlashcardsView';
+import { NotesView } from './components/NotesView';
+import { ProfileView } from './components/ProfileView';
 import { TimelineView } from './components/TimelineView';
 import { BalanceView } from './components/BalanceView';
 import { SprintTimerView } from './components/SprintTimerView';
@@ -12,11 +15,34 @@ import { CaseStudyModal } from './components/CaseStudyModal';
 import { CrucibleModal } from './components/CrucibleModal';
 import { CommandPaletteModal } from './components/CommandPaletteModal';
 import { ConfirmModal } from './components/ConfirmModal';
+import { PinLockModal } from './components/PinLockModal';
+import { triggerHaptic } from './utils/haptics';
+import { playTick, playChime } from './utils/audio';
 
 const STORAGE_PROGRESS_KEY = 'fde-path-progress-v4';
 const STORAGE_START_KEY = 'fde-path-start-v4';
 const STORAGE_SPRINT_KEY = 'fde-path-sprint-hist-v4';
 const STORAGE_TRACK_KEY = 'fde-current-track';
+const STORAGE_PROFILE_KEY = 'fde-user-profile-v1';
+const STORAGE_THEME_KEY = 'fde-theme-v1';
+const STORAGE_SOUND_KEY = 'fde-sound-enabled-v1';
+
+const DEFAULT_PROFILE: UserProfile = {
+  name: 'Rishabh Verma',
+  email: 'vermarishabh031@gmail.com',
+  targetRole: 'Forward Deployed Engineer',
+  targetCompany: 'Palantir / Scale AI',
+  targetDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  targetWeeklyHours: 15,
+  currentLevel: 'Mid-Level SWE',
+  bio: 'Deploying robust data pipelines, edge AI solutions, and high-impact technical architecture directly into client environments.',
+  githubUrl: 'https://github.com/vermarishav',
+  linkedinUrl: '',
+  isPinLocked: false,
+  pinHash: '',
+  securityQuestion: 'Favorite distributed systems broker?',
+  securityAnswer: 'kafka',
+};
 
 export default function App() {
   const [currentTrack, setCurrentTrack] = useState<TrackType>(() => {
@@ -41,6 +67,40 @@ export default function App() {
     }
   });
 
+  // User Profile state
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_PROFILE_KEY);
+      return raw ? JSON.parse(raw) : DEFAULT_PROFILE;
+    } catch {
+      return DEFAULT_PROFILE;
+    }
+  });
+
+  // Theme Night Mode state
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem(STORAGE_THEME_KEY) as 'light' | 'dark') || 'light';
+  });
+
+  // Audio Sound state
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    const raw = localStorage.getItem(STORAGE_SOUND_KEY);
+    return raw === null ? true : raw === 'true';
+  });
+
+  // PIN Lock state: locked initially if pin is configured
+  const [isLocked, setIsLocked] = useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_PROFILE_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        return !!(p.isPinLocked && p.pinHash);
+      }
+    } catch {}
+    return false;
+  });
+
+
   // Modals state
   const [activeCaseStudy, setActiveCaseStudy] = useState<string | null>(null);
   const [isCrucibleOpen, setIsCrucibleOpen] = useState<boolean>(false);
@@ -57,6 +117,35 @@ export default function App() {
     onConfirm: () => {},
   });
 
+  // Sync theme class to document element
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  // Persist profile
+  const handleUpdateProfile = (updated: UserProfile) => {
+    setProfile(updated);
+    localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(updated));
+  };
+
+  // Toggle theme
+  const handleToggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    localStorage.setItem(STORAGE_THEME_KEY, next);
+  };
+
+  // Toggle sound
+  const handleToggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    localStorage.setItem(STORAGE_SOUND_KEY, String(next));
+  };
+
   // Persist track
   const handleSelectTrack = (track: TrackType) => {
     setCurrentTrack(track);
@@ -72,7 +161,7 @@ export default function App() {
   const handleToggleItem = useCallback(
     (key: string) => {
       setProgress((prev) => {
-        const current = prev[key] || { checked: false, note: '', redo: false, blocked: false };
+        const current = prev[key] || { checked: false, note: '', redo: false, blocked: false, bookmarked: false };
         const updated = { ...current, checked: !current.checked };
         const newProg = { ...prev, [key]: updated };
         localStorage.setItem(STORAGE_PROGRESS_KEY, JSON.stringify(newProg));
@@ -89,6 +178,17 @@ export default function App() {
     },
     [startDate]
   );
+
+  const handleToggleBookmark = useCallback((key: string) => {
+    setProgress((prev) => {
+      const current = prev[key] || { checked: false, note: '', redo: false, blocked: false, bookmarked: false };
+      const updated = { ...current, bookmarked: !current.bookmarked };
+      const newProg = { ...prev, [key]: updated };
+      localStorage.setItem(STORAGE_PROGRESS_KEY, JSON.stringify(newProg));
+      return newProg;
+    });
+  }, []);
+
 
   const handleToggleRedo = useCallback((key: string) => {
     setProgress((prev) => {
@@ -249,21 +349,57 @@ export default function App() {
     }
   };
 
-  // Export JSON Backup
+  // Full JSON Backup Export
   const handleExportProgress = () => {
     const data = {
+      profile,
       progress,
       startDate,
       sprintHistory,
+      theme,
       exportedAt: new Date().toISOString(),
+      version: 5,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `fde-path-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `fde-path-candidate-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // JSON Backup Import
+  const handleImportBackup = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (data.progress) {
+          setProgress(data.progress);
+          localStorage.setItem(STORAGE_PROGRESS_KEY, JSON.stringify(data.progress));
+        }
+        if (data.profile) {
+          setProfile(data.profile);
+          localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(data.profile));
+        }
+        if (data.sprintHistory) {
+          setSprintHistory(data.sprintHistory);
+          localStorage.setItem(STORAGE_SPRINT_KEY, JSON.stringify(data.sprintHistory));
+        }
+        if (data.startDate) {
+          setStartDate(data.startDate);
+          localStorage.setItem(STORAGE_START_KEY, data.startDate);
+        }
+        triggerHaptic('success');
+        if (soundEnabled) playChime();
+        alert('Backup successfully restored!');
+      } catch {
+        triggerHaptic('error');
+        alert('Failed to parse backup file. Please select a valid JSON backup.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   // Reset Progress Confirmation
@@ -302,9 +438,36 @@ export default function App() {
     }
   };
 
+  // Secondary subtabs navigation
+  const allSubTabs: { id: TabType; label: string }[] = [
+    { id: 'syllabus', label: 'Syllabus' },
+    { id: 'flashcards', label: 'Active Recall' },
+    { id: 'notes', label: 'Study Journal' },
+    { id: 'sprint', label: 'Focus Sprint' },
+    { id: 'profile', label: 'Candidate Profile' },
+    { id: 'timeline', label: 'Timeline' },
+    { id: 'balance', label: 'Skill Balance' },
+    { id: 'portfolio', label: 'Portfolio' },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#FAF8F3] text-[#1C1B19] relative flex flex-col selection:bg-[#2954A6] selection:text-[#FAF8F3]">
+    <div className="min-h-screen bg-[#FAF8F3] text-[#1C1B19] relative flex flex-col selection:bg-[#2954A6] selection:text-[#FAF8F3] transition-colors duration-200">
       <div className="grain" />
+
+      {/* Security PIN Lock Modal */}
+      {isLocked && profile.isPinLocked && profile.pinHash && (
+        <PinLockModal
+          correctPin={profile.pinHash}
+          securityQuestion={profile.securityQuestion}
+          securityAnswer={profile.securityAnswer}
+          onUnlock={() => setIsLocked(false)}
+          onResetPin={() => {
+            const updated = { ...profile, isPinLocked: false, pinHash: '' };
+            handleUpdateProfile(updated);
+            setIsLocked(false);
+          }}
+        />
+      )}
 
       {/* Android Optimized Top Bar */}
       <AndroidTopBar
@@ -314,10 +477,35 @@ export default function App() {
         onSelectTab={setActiveTab}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenCrucible={() => setIsCrucibleOpen(true)}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
+      {/* Desktop / Tablet Sub-Navigation Pills */}
+      <div className="hidden md:block border-b border-[#E3DED0] bg-[#F2EFE6]/70 backdrop-blur-xs sticky top-[57px] z-30">
+        <div className="max-w-[1180px] mx-auto px-4 sm:px-8 flex items-center gap-1 overflow-x-auto py-2">
+          {allSubTabs.map((st) => (
+            <button
+              key={st.id}
+              onClick={() => {
+                triggerHaptic('light');
+                if (soundEnabled) playTick();
+                setActiveTab(st.id);
+              }}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-mono transition-all duration-150 whitespace-nowrap ${
+                activeTab === st.id
+                  ? 'bg-[#2954A6] text-white font-medium shadow-xs'
+                  : 'text-[#55524A] hover:bg-[#FAF8F3] hover:text-[#1C1B19]'
+              }`}
+            >
+              {st.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Main Container */}
-      <main className="flex-1 max-w-[1180px] w-full mx-auto px-4 sm:px-8 py-6 mb-16">
+      <main className="flex-1 max-w-[1180px] w-full mx-auto px-4 sm:px-8 py-6 mb-20">
         {activeTab === 'syllabus' && (
           <SyllabusView
             currentTrack={currentTrack}
@@ -326,8 +514,42 @@ export default function App() {
             onToggleItem={handleToggleItem}
             onToggleRedo={handleToggleRedo}
             onToggleBlocked={handleToggleBlocked}
+            onToggleBookmark={handleToggleBookmark}
             onUpdateNote={handleUpdateNote}
+            soundEnabled={soundEnabled}
             stats={stats}
+          />
+        )}
+
+        {activeTab === 'flashcards' && (
+          <FlashcardsView soundEnabled={soundEnabled} />
+        )}
+
+        {activeTab === 'notes' && (
+          <NotesView soundEnabled={soundEnabled} />
+        )}
+
+        {activeTab === 'sprint' && (
+          <SprintTimerView
+            onSprintCompleted={handleSprintCompleted}
+            sprintHistory={sprintHistory}
+          />
+        )}
+
+        {activeTab === 'profile' && (
+          <ProfileView
+            profile={profile}
+            onUpdateProfile={handleUpdateProfile}
+            stats={stats}
+            progress={progress}
+            theme={theme}
+            onToggleTheme={handleToggleTheme}
+            soundEnabled={soundEnabled}
+            onToggleSound={handleToggleSound}
+            onExportBackup={handleExportProgress}
+            onImportBackup={handleImportBackup}
+            onExportDossier={handleExportSummary}
+            onConfirmReset={handleConfirmReset}
           />
         )}
 
@@ -336,13 +558,6 @@ export default function App() {
         )}
 
         {activeTab === 'balance' && <BalanceView stats={stats} />}
-
-        {activeTab === 'sprint' && (
-          <SprintTimerView
-            onSprintCompleted={handleSprintCompleted}
-            sprintHistory={sprintHistory}
-          />
-        )}
 
         {activeTab === 'portfolio' && (
           <PortfolioView
@@ -393,3 +608,4 @@ export default function App() {
     </div>
   );
 }
+

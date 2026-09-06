@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Phase, ProgressMap, TrackType, BucketType } from '../types';
 import { triggerHaptic } from '../utils/haptics';
+import { playTick, playChime } from '../utils/audio';
 import confetti from 'canvas-confetti';
 import {
   Search,
@@ -12,7 +13,8 @@ import {
   ArrowRight,
   Check,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Star,
 } from 'lucide-react';
 
 interface SyllabusViewProps {
@@ -22,7 +24,9 @@ interface SyllabusViewProps {
   onToggleItem: (key: string, isMilestone?: boolean) => void;
   onToggleRedo: (key: string) => void;
   onToggleBlocked: (key: string) => void;
+  onToggleBookmark?: (key: string) => void;
   onUpdateNote: (key: string, note: string) => void;
+  soundEnabled?: boolean;
   stats: {
     totalItems: number;
     doneItems: number;
@@ -38,13 +42,17 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({
   onToggleItem,
   onToggleRedo,
   onToggleBlocked,
+  onToggleBookmark,
   onUpdateNote,
+  soundEnabled = true,
   stats,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRedo, setFilterRedo] = useState(false);
+  const [filterBookmarked, setFilterBookmarked] = useState(false);
   const [filterFriction, setFilterFriction] = useState(false);
   const [filterCompleted, setFilterCompleted] = useState<boolean | null>(null);
+
   const [openPhases, setOpenPhases] = useState<Record<string, boolean>>(() => {
     // Open the first phase by default
     return { [phases[0]?.id || '']: true };
@@ -99,6 +107,14 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({
     const wasChecked = progress[key]?.checked;
     onToggleItem(key, isMilestone);
 
+    if (soundEnabled) {
+      if (!wasChecked && isMilestone) {
+        playChime();
+      } else {
+        playTick();
+      }
+    }
+
     if (!wasChecked && isMilestone) {
       try {
         confetti({
@@ -121,7 +137,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({
         const filteredItems = phase.items
           .map((item, index) => {
             const key = `${phase.id}::${index}`;
-            const state = progress[key] || { checked: false, note: '', redo: false, blocked: false };
+            const state = progress[key] || { checked: false, note: '', redo: false, blocked: false, bookmarked: false };
             const matchesQuery =
               q === '' ||
               item.t.toLowerCase().includes(q) ||
@@ -129,6 +145,7 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({
               (item.sub && item.sub.some((s) => s.toLowerCase().includes(q)));
 
             if (!matchesQuery) return null;
+            if (filterBookmarked && !state.bookmarked) return null;
             if (filterRedo && !state.redo) return null;
             if (filterFriction && !(state.redo || state.blocked || state.note.trim().length > 0)) return null;
             if (filterCompleted === true && !state.checked) return null;
@@ -251,6 +268,21 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({
           </div>
 
           {/* Filter Chips */}
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              setFilterBookmarked((prev) => !prev);
+            }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-mono border transition-all ${
+              filterBookmarked
+                ? 'bg-[#F1E4CB] border-[#B8863A] text-[#B8863A] font-semibold'
+                : 'bg-[#FAF8F3] border-[#E3DED0] text-[#55524A] hover:border-[#948E7E]'
+            }`}
+          >
+            <Star className={`w-3 h-3 ${filterBookmarked ? 'fill-current' : ''}`} />
+            <span>Bookmarked</span>
+          </button>
+
           <button
             onClick={() => {
               triggerHaptic('light');
@@ -443,6 +475,31 @@ export const SyllabusView: React.FC<SyllabusViewProps> = ({
                                 </div>
                               )}
                             </div>
+
+                            {/* Bookmark Star Toggle */}
+                            {onToggleBookmark && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  triggerHaptic('light');
+                                  if (soundEnabled) playTick();
+                                  onToggleBookmark(key);
+                                }}
+                                className={`p-1 rounded transition-colors ${
+                                  state.bookmarked
+                                    ? 'text-[#B8863A]'
+                                    : 'text-[#948E7E] hover:text-[#B8863A]'
+                                }`}
+                                title={state.bookmarked ? 'Remove Bookmark' : 'Bookmark Topic'}
+                              >
+                                <Star
+                                  className={`w-4 h-4 ${
+                                    state.bookmarked ? 'fill-current text-[#B8863A]' : ''
+                                  }`}
+                                />
+                              </button>
+                            )}
 
                             {/* Expand Detail Toggle */}
                             <button

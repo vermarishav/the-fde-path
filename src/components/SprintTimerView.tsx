@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { triggerHaptic } from '../utils/haptics';
+import { startFocusSound, stopFocusSound } from '../utils/audio';
 import confetti from 'canvas-confetti';
-import { Play, Square, Flame, RotateCcw } from 'lucide-react';
+import { Play, Square, Flame, RotateCcw, Volume2, VolumeX, Headphones } from 'lucide-react';
 
 interface SprintTimerViewProps {
   onSprintCompleted: () => void;
@@ -15,16 +16,21 @@ export const SprintTimerView: React.FC<SprintTimerViewProps> = ({
   const [selectedDuration, setSelectedDuration] = useState<number>(25); // minutes
   const [timeLeft, setTimeLeft] = useState<number>(25 * 60);
   const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [focusSoundType, setFocusSoundType] = useState<'off' | 'brown' | 'alpha40hz'>('brown');
 
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (isRunning) {
+      if (focusSoundType !== 'off') {
+        startFocusSound(focusSoundType);
+      }
       timerRef.current = window.setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timerRef.current!);
             setIsRunning(false);
+            stopFocusSound();
             triggerHaptic('heavy');
             onSprintCompleted();
 
@@ -44,13 +50,15 @@ export const SprintTimerView: React.FC<SprintTimerViewProps> = ({
         });
       }, 1000);
     } else {
+      stopFocusSound();
       if (timerRef.current) clearInterval(timerRef.current);
     }
 
     return () => {
+      stopFocusSound();
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isRunning, selectedDuration, onSprintCompleted]);
+  }, [isRunning, selectedDuration, onSprintCompleted, focusSoundType]);
 
   const selectDuration = (mins: number) => {
     if (isRunning) return;
@@ -66,9 +74,11 @@ export const SprintTimerView: React.FC<SprintTimerViewProps> = ({
 
   const resetTimer = () => {
     triggerHaptic('light');
+    stopFocusSound();
     setIsRunning(false);
     setTimeLeft(selectedDuration * 60);
   };
+
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
@@ -194,6 +204,59 @@ export const SprintTimerView: React.FC<SprintTimerViewProps> = ({
                 </button>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Focus Sound Mode */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#363430]">
+          <div className="flex items-center gap-2 text-xs font-mono text-[#948E7E]">
+            <Headphones className="w-3.5 h-3.5 text-[#5487E8]" />
+            <span>Focus Audio Generator:</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-[#2B2926] p-1 rounded-xl border border-[#454138]">
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setFocusSoundType('off');
+                if (isRunning) stopFocusSound();
+              }}
+              className={`text-[11px] font-mono px-2.5 py-1 rounded-lg transition-colors ${
+                focusSoundType === 'off'
+                  ? 'bg-[#FAF8F3] text-[#1C1B19] font-medium'
+                  : 'text-[#948E7E] hover:text-[#FAF8F3]'
+              }`}
+            >
+              Muted
+            </button>
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setFocusSoundType('brown');
+                if (isRunning) startFocusSound('brown');
+              }}
+              className={`text-[11px] font-mono px-2.5 py-1 rounded-lg transition-colors ${
+                focusSoundType === 'brown'
+                  ? 'bg-[#71875F] text-white font-medium shadow-sm'
+                  : 'text-[#948E7E] hover:text-[#FAF8F3]'
+              }`}
+            >
+              Brown Noise
+            </button>
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                setFocusSoundType('alpha40hz');
+                if (isRunning) startFocusSound('alpha40hz');
+              }}
+              className={`text-[11px] font-mono px-2.5 py-1 rounded-lg transition-colors ${
+                focusSoundType === 'alpha40hz'
+                  ? 'bg-[#2954A6] text-white font-medium shadow-sm'
+                  : 'text-[#948E7E] hover:text-[#FAF8F3]'
+              }`}
+            >
+              40Hz Alpha Binaural
+            </button>
           </div>
         </div>
 

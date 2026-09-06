@@ -2,7 +2,7 @@ import React from 'react';
 import { TrackType, TabType } from '../types';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { triggerHaptic } from '../utils/haptics';
-import { Search, Flame, Download, Check } from 'lucide-react';
+import { Search, Flame, Download, Check, Moon, Sun } from 'lucide-react';
 
 interface AndroidTopBarProps {
   currentTrack: TrackType;
@@ -11,6 +11,8 @@ interface AndroidTopBarProps {
   onSelectTab: (tab: TabType) => void;
   onOpenCommandPalette: () => void;
   onOpenCrucible: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const AndroidTopBar: React.FC<AndroidTopBarProps> = ({
@@ -18,8 +20,11 @@ export const AndroidTopBar: React.FC<AndroidTopBarProps> = ({
   onSelectTrack,
   onOpenCommandPalette,
   onOpenCrucible,
+  theme = 'light',
+  onToggleTheme,
 }) => {
   const { isInstallable, isInstalled, install } = usePWAInstall();
+
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF8F3]/95 backdrop-blur-md border-b-[1.4px] border-[#1C1B19] pt-safe">
@@ -109,6 +114,24 @@ export const AndroidTopBar: React.FC<AndroidTopBarProps> = ({
             <Flame className="w-3.5 h-3.5 text-[#B8863A]" />
             <span className="hidden lg:inline font-medium">Crucible</span>
           </button>
+
+          {/* Theme Night Mode Toggle */}
+          {onToggleTheme && (
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                onToggleTheme();
+              }}
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-[#F2EFE6] hover:bg-[#E3DED0] text-[#55524A] hover:text-[#1C1B19] border border-[#E3DED0] transition-colors active:scale-95"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Night Mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 text-[#E2AC54]" />
+              ) : (
+                <Moon className="w-4 h-4 text-[#55524A]" />
+              )}
+            </button>
+          )}
 
           {/* Command Palette Trigger */}
           <button
