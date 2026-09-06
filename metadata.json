@@ -1,0 +1,6 @@
+{
+  "name": "The FDE Path",
+  "description": "Field manual and enhanced study syllabus for Forward Deployed Engineering, optimized for Android.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
